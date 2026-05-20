@@ -315,7 +315,6 @@ def build_defect_output_table(
         Paragraph("Reporting<br/>Date", styles["cell_bold"]),
         Paragraph("Asset<br/>Type", styles["cell_bold"]),
         Paragraph("Defect<br/>Description", styles["cell_bold"]),
-        Paragraph("Model", styles["cell_bold"]),
         Paragraph("Side", styles["cell_bold"]),
         Paragraph("Chainage", styles["cell_bold"]),
         Paragraph("Latitude", styles["cell_bold"]),
@@ -334,14 +333,12 @@ def build_defect_output_table(
             Paragraph("", styles["cell"]),
             Paragraph("", styles["cell"]),
             Paragraph("", styles["cell"]),
-            Paragraph("", styles["cell"]),
         ])
 
     for index, row in enumerate(defects, start=1):
         metadata = parse_metadata(row.get("metadata"))
         side = metadata.get("side") or row.get("side") or "Carriageway"
         asset_type = metadata.get("asset_type") or metadata.get("category") or row.get("asset_type") or "Road Surface"
-        model_name = metadata.get("model_name") or metadata.get("method") or "Unknown"
         chainage = format_chainage(row.get("chainage"), row.get("lat"), row.get("lng"))
         local_image_path = download_defect_image(video_id, row, temp_dir)
 
@@ -350,7 +347,6 @@ def build_defect_output_table(
             Paragraph(format_date(row.get("timestamp")), styles["cell"]),
             Paragraph(defect_label(asset_type), styles["cell"]),
             Paragraph(metadata.get("label") or defect_label(row.get("detection_type")), styles["cell"]),
-            Paragraph(str(model_name), styles["cell"]),
             Paragraph(side, styles["cell"]),
             Paragraph(chainage, styles["cell"]),
             Paragraph(format_decimal(row.get("lat")), styles["cell"]),
@@ -360,7 +356,7 @@ def build_defect_output_table(
 
     table = Table(
         rows,
-        colWidths=[28, 54, 54, 68, 52, 40, 55, 55, 55, 74],
+        colWidths=[28, 54, 64, 90, 45, 60, 55, 55, 84],
         repeatRows=1,
     )
     table.setStyle(table_style())

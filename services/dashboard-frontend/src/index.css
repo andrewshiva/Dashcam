@@ -802,3 +802,31 @@ h1, h2, h3, h4 {
   }
 
 }
+
+/* ─── Sidebar Menu Items ────────────────────────────────────────── */
+.sidebar-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  width: fit-content; /* Only span the actual length of the content! */
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text-secondary);
+  background-color: transparent;
+}
+
+.sidebar-menu-item:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+  color: var(--text-primary);
+  transform: translateX(2px); /* Premium hover slide micro-animation */
+}
+
+.sidebar-menu-item.active {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: var(--accent-blue);
+  font-weight: 500;
+}
+

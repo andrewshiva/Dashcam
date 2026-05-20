@@ -1,4 +1,3 @@
-Showing lines 1 to 71
 import { LayoutDashboard, Map, FileText, Settings, Shield, Activity, BarChart3 } from 'lucide-react';
 
 const Sidebar = ({ currentView, onViewChange = () => {} }) => {
@@ -39,18 +38,7 @@ const Sidebar = ({ currentView, onViewChange = () => {} }) => {
           <div 
             key={item.id} 
             onClick={() => onViewChange(item.id)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '10px 12px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              backgroundColor: currentView === item.id ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-              color: currentView === item.id ? 'var(--accent-blue)' : 'var(--text-secondary)',
-              fontSize: '0.95rem',
-              transition: 'all 0.2s ease'
-            }}
+            className={`sidebar-menu-item ${currentView === item.id ? 'active' : ''}`}
           >
             <item.icon size={18} />
             <span style={{ fontWeight: 500 }}>{item.label}</span>
@@ -59,7 +47,7 @@ const Sidebar = ({ currentView, onViewChange = () => {} }) => {
       </nav>
 
       <div style={{ marginTop: '18px', paddingTop: '18px', borderTop: '1px solid var(--border-color)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+        <div className="sidebar-menu-item">
           <Settings size={18} />
           <span>Settings</span>
         </div>
@@ -69,5 +57,3 @@ const Sidebar = ({ currentView, onViewChange = () => {} }) => {
 };
 
 export default Sidebar;
-
-The above content shows the entire, complete file contents of the requested file.
