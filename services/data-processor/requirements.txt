@@ -1,0 +1,8 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+psycopg2-binary==2.9.9
+asyncpg==0.29.0
+SQLAlchemy==2.0.23
+GeoAlchemy2==0.14.2
+google-cloud-storage==2.13.0
+pydantic==2.5.2

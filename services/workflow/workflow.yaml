@@ -1,0 +1,313 @@
+main:
+  params: [event]
+  steps:
+    - run_pipeline:
+        try:
+          steps:
+            - init:
+                assign:
+                  - empty_map: {}
+                  - event_data: ${default(map.get(event, "data"), empty_map)}
+                  - bucket: ${default(map.get(event, "bucket"), default(map.get(event_data, "bucket"), "nhai-das-dev-validated-video"))}
+                  - file: ${default(map.get(event, "name"), default(map.get(event_data, "name"), "video.mp4"))}
+                  - telemetry_extractor_url: ${default(map.get(event, "telemetry_extractor_url"), "https://telemetry-extractor-863438916962.asia-south1.run.app")}
+                  - frame_extractor_url: ${default(map.get(event, "frame_extractor_url"), "https://frame-extractor-863438916962.asia-south1.run.app")}
+                  - ai_inference_url: ${default(map.get(event, "ai_inference_url"), "https://ai-inference-863438916962.asia-south1.run.app")}
+                  - data_processor_url: ${default(map.get(event, "data_processor_url"), "https://data-processor-863438916962.asia-south1.run.app")}
+                  - frames_result: null
+                  - telemetry_result: null
+
+            - log_pipeline_start:
+                call: sys.log
+                args:
+                  severity: INFO
+                  text: ${"PIPELINE_EVENT stage=workflow_start video_id=" + file}
+
+            - record_pipeline_start:
+                try:
+                  call: http.post
+                  args:
+                    url: ${data_processor_url + "/pipeline-events"}
+                    body:
+                      video_id: ${file}
+                      stage: "workflow_start"
+                      status: "STARTED"
+                    auth:
+                      type: OIDC
+                  result: pipeline_start_event
+                except:
+                  as: event_error
+                  steps:
+                    - log_start_event_warning:
+                        call: sys.log
+                        args:
+                          severity: WARNING
+                          text: ${"PIPELINE_EVENT_LOG_WARNING stage=workflow_start video_id=" + file + " error=" + json.encode_to_string(event_error)}
+
+            - record_extraction_start:
+                try:
+                  call: http.post
+                  args:
+                    url: ${data_processor_url + "/pipeline-events"}
+                    body:
+                      video_id: ${file}
+                      stage: "extraction_start"
+                      status: "STARTED"
+                    auth:
+                      type: OIDC
+                  result: extraction_start_event
+                except:
+                  as: event_error
+                  steps:
+                    - log_extraction_start_warning:
+                        call: sys.log
+                        args:
+                          severity: WARNING
+                          text: ${"PIPELINE_EVENT_LOG_WARNING stage=extraction_start video_id=" + file + " error=" + json.encode_to_string(event_error)}
+
+            - extract_frames_and_telemetry:
+                parallel:
+                  shared: [frames_result, telemetry_result]
+                  branches:
+                    - frames:
+                        steps:
+                          - call_frame_extractor:
+                              try:
+                                call: http.post
+                                args:
+                                  url: ${frame_extractor_url}
+                                  body:
+                                    bucket: ${bucket}
+                                    name: ${file}
+                                  auth:
+                                    type: OIDC
+                                result: frames_result
+                              retry:
+                                predicate: ${http.default_retry_predicate}
+                                max_retries: 3
+                                backoff:
+                                  initial_delay: 2
+                                  max_delay: 30
+                                  multiplier: 2
+                    - telemetry:
+                        steps:
+                          - call_telemetry_extractor:
+                              try:
+                                call: http.post
+                                args:
+                                  url: ${telemetry_extractor_url}
+                                  body:
+                                    bucket: ${bucket}
+                                    name: ${file}
+                                  auth:
+                                    type: OIDC
+                                result: telemetry_result
+                              retry:
+                                predicate: ${http.default_retry_predicate}
+                                max_retries: 3
+                                backoff:
+                                  initial_delay: 2
+                                  max_delay: 30
+                                  multiplier: 2
+
+            - record_extraction_success:
+                try:
+                  call: http.post
+                  args:
+                    url: ${data_processor_url + "/pipeline-events"}
+                    body:
+                      video_id: ${file}
+                      stage: "extraction_success"
+                      status: "SUCCEEDED"
+                      details:
+                        frames_extracted: ${frames_result.body.frames_extracted}
+                        telemetry_source: ${default(map.get(telemetry_result.body, "telemetry_source"), "unknown")}
+                    auth:
+                      type: OIDC
+                  result: extraction_success_event
+                except:
+                  as: event_error
+                  steps:
+                    - log_extraction_success_warning:
+                        call: sys.log
+                        args:
+                          severity: WARNING
+                          text: ${"PIPELINE_EVENT_LOG_WARNING stage=extraction_success video_id=" + file + " error=" + json.encode_to_string(event_error)}
+
+            - record_inference_start:
+                try:
+                  call: http.post
+                  args:
+                    url: ${data_processor_url + "/pipeline-events"}
+                    body:
+                      video_id: ${file}
+                      stage: "inference_start"
+                      status: "STARTED"
+                      details:
+                        frames: ${frames_result.body.frames_extracted}
+                    auth:
+                      type: OIDC
+                  result: inference_start_event
+                except:
+                  as: event_error
+                  steps:
+                    - log_inference_start_warning:
+                        call: sys.log
+                        args:
+                          severity: WARNING
+                          text: ${"PIPELINE_EVENT_LOG_WARNING stage=inference_start video_id=" + file + " error=" + json.encode_to_string(event_error)}
+
+            - run_inference:
+                try:
+                  call: http.post
+                  args:
+                    url: ${ai_inference_url}
+                    body:
+                      frames: ${frames_result.body.frames_extracted}
+                      video_name: ${file}
+                    auth:
+                      type: OIDC
+                  result: inference_result
+                retry:
+                  predicate: ${http.default_retry_predicate}
+                  max_retries: 2
+                  backoff:
+                    initial_delay: 2
+                    max_delay: 20
+                    multiplier: 2
+
+            - record_inference_success:
+                try:
+                  call: http.post
+                  args:
+                    url: ${data_processor_url + "/pipeline-events"}
+                    body:
+                      video_id: ${file}
+                      stage: "inference_success"
+                      status: "SUCCEEDED"
+                      details:
+                        frame_id: ${inference_result.body.frame_id}
+                        detection_type: ${inference_result.body.detection_type}
+                        confidence: ${inference_result.body.confidence}
+                        model: ${default(map.get(inference_result.body, "model"), "unknown")}
+                        models: ${default(map.get(inference_result.body, "models"), [])}
+                    auth:
+                      type: OIDC
+                  result: inference_success_event
+                except:
+                  as: event_error
+                  steps:
+                    - log_inference_success_warning:
+                        call: sys.log
+                        args:
+                          severity: WARNING
+                          text: ${"PIPELINE_EVENT_LOG_WARNING stage=inference_success video_id=" + file + " error=" + json.encode_to_string(event_error)}
+
+            - record_data_processing_start:
+                try:
+                  call: http.post
+                  args:
+                    url: ${data_processor_url + "/pipeline-events"}
+                    body:
+                      video_id: ${file}
+                      stage: "data_processing_start"
+                      status: "STARTED"
+                    auth:
+                      type: OIDC
+                  result: data_processing_start_event
+                except:
+                  as: event_error
+                  steps:
+                    - log_data_processing_start_warning:
+                        call: sys.log
+                        args:
+                          severity: WARNING
+                          text: ${"PIPELINE_EVENT_LOG_WARNING stage=data_processing_start video_id=" + file + " error=" + json.encode_to_string(event_error)}
+
+            - process_and_save_data:
+                try:
+                  call: http.post
+                  args:
+                    url: ${data_processor_url + "/process"}
+                    body:
+                      video_id: ${file}
+                      latitude: ${telemetry_result.body.latitude}
+                      longitude: ${telemetry_result.body.longitude}
+                      detections: ${default(map.get(inference_result.body, "detections"), [])}
+                    auth:
+                      type: OIDC
+                  result: process_result
+                retry:
+                  predicate: ${http.default_retry_predicate}
+                  max_retries: 3
+                  backoff:
+                    initial_delay: 2
+                    max_delay: 30
+                    multiplier: 2
+
+            - log_pipeline_success:
+                call: sys.log
+                args:
+                  severity: INFO
+                  text: ${"PIPELINE_EVENT stage=workflow_success video_id=" + file}
+
+            - record_pipeline_success:
+                try:
+                  call: http.post
+                  args:
+                    url: ${data_processor_url + "/pipeline-events"}
+                    body:
+                      video_id: ${file}
+                      stage: "workflow_success"
+                      status: "SUCCEEDED"
+                      details:
+                        frame_id: ${inference_result.body.frame_id}
+                        detection_type: ${inference_result.body.detection_type}
+                        confidence: ${inference_result.body.confidence}
+                        model: ${default(map.get(inference_result.body, "model"), "unknown")}
+                        models: ${default(map.get(inference_result.body, "models"), [])}
+                    auth:
+                      type: OIDC
+                  result: pipeline_success_event
+                except:
+                  as: event_error
+                  steps:
+                    - log_success_event_warning:
+                        call: sys.log
+                        args:
+                          severity: WARNING
+                          text: ${"PIPELINE_EVENT_LOG_WARNING stage=workflow_success video_id=" + file + " error=" + json.encode_to_string(event_error)}
+
+            - return_result:
+                return: ${process_result}
+        except:
+          as: e
+          steps:
+            - log_pipeline_failure:
+                call: sys.log
+                args:
+                  severity: ERROR
+                  text: ${"PIPELINE_FAILURE stage=workflow error=" + json.encode_to_string(e)}
+            - record_pipeline_failure:
+                try:
+                  call: http.post
+                  args:
+                    url: ${data_processor_url + "/pipeline-events"}
+                    body:
+                      video_id: ${file}
+                      stage: "workflow_failure"
+                      status: "FAILED"
+                      message: ${json.encode_to_string(e)}
+                    auth:
+                      type: OIDC
+                  result: pipeline_failure_event
+                except:
+                  as: event_error
+                  steps:
+                    - log_failure_event_warning:
+                        call: sys.log
+                        args:
+                          severity: WARNING
+                          text: ${"PIPELINE_EVENT_LOG_WARNING stage=workflow_failure video_id=" + file + " error=" + json.encode_to_string(event_error)}
+            - raise_pipeline_failure:
+                raise: ${e}

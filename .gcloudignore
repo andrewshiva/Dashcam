@@ -1,0 +1,11 @@
+.git
+node_modules
+dist
+build
+.env
+*.log
+terraform/.terraform
+**/node_modules
+**/dist
+**/build
+Sample
