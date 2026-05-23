@@ -93,9 +93,9 @@ resource "google_monitoring_alert_policy" "high_error_rate" {
   conditions {
     display_name = "Cloud Run 5xx Errors"
     condition_threshold {
-      filter     = "resource.type=\"cloud_run_revision\" metric.type=\"run.googleapis.com/request_count\" metric.labels.response_code_class=\"5xx\""
-      duration   = "60s"
-      comparison = "COMPARISON_GT"
+      filter          = "resource.type=\"cloud_run_revision\" metric.type=\"run.googleapis.com/request_count\" metric.labels.response_code_class=\"5xx\""
+      duration        = "60s"
+      comparison      = "COMPARISON_GT"
       threshold_value = 0.01
       aggregations {
         alignment_period   = "60s"
@@ -103,7 +103,7 @@ resource "google_monitoring_alert_policy" "high_error_rate" {
       }
     }
   }
-  
+
   notification_channels = [google_monitoring_notification_channel.email.name]
 }
 
@@ -143,15 +143,38 @@ resource "google_monitoring_alert_policy" "pipeline_failure_email" {
   notification_channels = [google_monitoring_notification_channel.email.name]
 }
 
+resource "google_monitoring_alert_policy" "dlq_has_messages" {
+  display_name = "NHAI DAS Upload DLQ Has Messages"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "Upload delivery events are in the DLQ"
+
+    condition_threshold {
+      filter          = "resource.type=\"pubsub_subscription\" metric.type=\"pubsub.googleapis.com/subscription/num_undelivered_messages\" resource.labels.subscription_id=\"${var.dlq_subscription_name}\""
+      duration        = "300s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0
+
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_MAX"
+      }
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email.name]
+}
+
 resource "google_monitoring_uptime_check_config" "dashboard_uptime" {
   display_name = "Dashboard Frontend Uptime Check"
   timeout      = "10s"
   period       = "60s"
 
   http_check {
-    path = "/"
-    port = 443
-    use_ssl = true
+    path         = "/"
+    port         = 443
+    use_ssl      = true
     validate_ssl = true
   }
 
@@ -162,4 +185,27 @@ resource "google_monitoring_uptime_check_config" "dashboard_uptime" {
       host       = var.uptime_host
     }
   }
+}
+
+resource "google_monitoring_alert_policy" "dashboard_uptime_failed" {
+  display_name = "Dashboard Frontend Uptime Failed"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "Dashboard uptime check failed"
+
+    condition_threshold {
+      filter          = "metric.type=\"monitoring.googleapis.com/uptime_check/check_passed\" metric.labels.check_id=\"${google_monitoring_uptime_check_config.dashboard_uptime.uptime_check_id}\""
+      duration        = "300s"
+      comparison      = "COMPARISON_LT"
+      threshold_value = 1
+
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_FRACTION_TRUE"
+      }
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email.name]
 }

@@ -11,3 +11,9 @@ variable "uptime_host" {
   default     = "dashboard-frontend-863438916962.asia-south1.run.app"
   description = "The target hostname for the frontend dashboard monitoring."
 }
+
+variable "dlq_subscription_name" {
+  type        = string
+  default     = "nhai-das-dev-dlq-sub"
+  description = "Pub/Sub DLQ subscription to alert on when upload events cannot be delivered."
+}

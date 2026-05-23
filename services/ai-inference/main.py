@@ -1,6 +1,7 @@
 import os
 import tempfile
 import logging
+import re
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from google.cloud import storage
@@ -94,9 +95,9 @@ BLOCKED_CLASSES = {
 
 # NHAI TOR-Compliant Asset and Defect Mapping (mapped from standard COCO class IDs for backward compatibility)
 ROAD_DEFECT_MAPPING = {
-    9: "poor_signboard_visibility",     # COCO traffic light -> poor_signboard_visibility
+    9: "poor_night_visibility",         # COCO traffic light -> poor_night_visibility
     11: "damaged_signboard",            # COCO stop sign -> damaged_signboard
-    12: "poor_marker_visibility",       # COCO parking meter -> poor_marker_visibility
+    12: "damaged_road_stud",            # COCO parking meter -> damaged_road_stud
     13: "damaged_bus_shelter",          # COCO bench -> damaged_bus_shelter
 }
 
@@ -104,10 +105,18 @@ MODEL_CLASS_MAPPINGS = {
     "default": ROAD_DEFECT_MAPPING,
 }
 
+def normalize_anomaly_name(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", str(value).lower()).strip("_")
+
+ANOMALY_NAME_ALIASES = {}
+for anomaly_code, anomaly in NHAI_TOR_ANOMALIES.items():
+    ANOMALY_NAME_ALIASES[normalize_anomaly_name(anomaly_code)] = anomaly_code
+    ANOMALY_NAME_ALIASES[normalize_anomaly_name(anomaly["label"])] = anomaly_code
+
 for assignment in os.environ.get("MODEL_CLASS_MAPPINGS_JSON", "").splitlines():
     # Reserved for future JSON-line model mappings without changing code.
     # Example line:
-    # pavement-best.pt={"0":"pothole","1":"cracking","2":"rutting"}
+    # pavement-best.pt={"0":"pothole","1":"alligator_cracking","2":"rutting"}
     if "=" not in assignment:
         continue
     model_name, raw_mapping = assignment.split("=", 1)
@@ -123,7 +132,7 @@ for assignment in os.environ.get("MODEL_CLASS_MAPPINGS_JSON", "").splitlines():
         logger.warning("Ignoring invalid model mapping for %s: %s", model_name, mapping_error)
 
 # Approved NHAI TOR-compliant defect types for CV analysis
-SURFACE_DEFECTS = ["pothole", "cracking", "rutting", "shoulder_drop"]
+SURFACE_DEFECTS = ["pothole", "alligator_cracking", "rutting"]
 
 class InferenceRequest(BaseModel):
     video_name: str
@@ -144,8 +153,24 @@ def model_group_for_model(model_name: str) -> str:
     return "generic_yolo_model"
 
 def anomaly_for_model_class(model_name: str, class_id: int) -> str | None:
-    mapping = MODEL_CLASS_MAPPINGS.get(model_name) or MODEL_CLASS_MAPPINGS["default"]
-    return mapping.get(class_id)
+    explicit_mapping = MODEL_CLASS_MAPPINGS.get(model_name)
+    if explicit_mapping and class_id in explicit_mapping:
+        return explicit_mapping[class_id]
+
+    yolo_model = models.get(model_name)
+    model_names = getattr(yolo_model, "names", None)
+    class_name = None
+    if isinstance(model_names, dict):
+        class_name = model_names.get(class_id)
+    elif isinstance(model_names, list) and class_id < len(model_names):
+        class_name = model_names[class_id]
+
+    if class_name is not None:
+        anomaly_code = ANOMALY_NAME_ALIASES.get(normalize_anomaly_name(class_name))
+        if anomaly_code:
+            return anomaly_code
+
+    return MODEL_CLASS_MAPPINGS["default"].get(class_id)
 
 def build_detection(
     *,
@@ -361,7 +386,7 @@ def analyze_road_surface(image_path: str) -> dict | None:
         }
     elif edge_density > 0.12:
         return {
-            "type": "cracking",
+            "type": "alligator_cracking",
             "confidence": min(0.92, 0.55 + edge_density),
             "method": "edge_density_analysis",
             "annotation": annotation,
@@ -475,11 +500,6 @@ def run_inference(request: InferenceRequest):
                             cls_id = int(box.cls[0])
                             conf = float(box.conf[0])
                             
-                            # Strict NHAI privacy filtering: block vehicles, pedestrians, license plates
-                            if cls_id in BLOCKED_CLASSES:
-                                logger.info(f"Privacy Exclusion: Discarded detected blocked class {cls_id} ({BLOCKED_CLASSES[cls_id]})")
-                                continue
-                                
                             anomaly_code = anomaly_for_model_class(model_name, cls_id)
                             if anomaly_code:
                                 all_raw_detections.append(build_detection(
@@ -492,6 +512,8 @@ def run_inference(request: InferenceRequest):
                                     frame_index=frame_index,
                                     annotation=None,
                                 ))
+                            elif cls_id in BLOCKED_CLASSES:
+                                logger.info(f"Privacy Exclusion: Discarded detected blocked class {cls_id} ({BLOCKED_CLASSES[cls_id]})")
                 except Exception as e:
                     logger.exception(
                         "PIPELINE_FAILURE stage=yolo_frame_inference video_id=%s model=%s frame_id=%s error=%s",
@@ -523,20 +545,8 @@ def run_inference(request: InferenceRequest):
     if deduplicated_dets:
         best_detection = max(deduplicated_dets, key=lambda x: x["confidence"])
 
-    # Fallback to road_clear if nothing was detected
-    if best_detection is None:
-        best_detection = {
-            "type": "road_clear",
-            "confidence": 0.90,
-            "method": "no_defects_found",
-            "frame_id": "frame_0000.jpg",
-            "model_name": "multi_model_pipeline",
-            "model_family": "fallback",
-            "model_group": "fallback",
-            "category": "status",
-            "label": "Road Clear",
-            "annotation": None,
-        }
+    detection_type = best_detection["type"] if best_detection else None
+    confidence = best_detection["confidence"] if best_detection else 0.0
 
     # Format detections for batch output (stripping raw frame_index used internally)
     detections_output = [
@@ -560,15 +570,15 @@ def run_inference(request: InferenceRequest):
     return {
         "status": "success",
         "video_name": request.video_name,
-        "detection_type": best_detection["type"],
-        "confidence": best_detection["confidence"],
-        "model": best_detection.get("model_name", "multi_model_pipeline"),
+        "detection_type": detection_type,
+        "confidence": confidence,
+        "model": best_detection.get("model_name", "multi_model_pipeline") if best_detection else None,
         "models": list(models.keys()) + ["road_surface_cv"],
         "taxonomy_version": "nhai_tor_annexure_ii",
         "supported_anomalies": NHAI_TOR_ANOMALIES,
-        "method": best_detection.get("method", "unknown"),
-        "frame_id": best_detection.get("frame_id", "frame_0000.jpg"),
-        "annotation": best_detection.get("annotation"),
+        "method": best_detection.get("method", "unknown") if best_detection else "no_anomaly_detected",
+        "frame_id": best_detection.get("frame_id") if best_detection else None,
+        "annotation": best_detection.get("annotation") if best_detection else None,
         "detections": detections_output,
     }
 

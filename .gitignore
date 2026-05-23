@@ -68,3 +68,8 @@ desktop.ini
 # Backup Directories
 backup_changes/
 original_files/
+
+# Local ML training artifacts
+training/datasets/
+training/external/
+training/runs/

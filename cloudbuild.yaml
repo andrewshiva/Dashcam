@@ -1,4 +1,38 @@
 steps:
+  # Validate code and infrastructure before building deployable images.
+  - name: 'python:3.11-slim'
+    id: 'python-compile-check'
+    entrypoint: python
+    args:
+      - '-m'
+      - 'py_compile'
+      - 'scripts/extract_training_frames.py'
+      - 'scripts/split_yolo_dataset.py'
+      - 'scripts/train_nhai_yolo.py'
+      - 'scripts/build_yolo_test_subset.py'
+      - 'scripts/evaluate_nhai_yolo.py'
+      - 'services/video-validator/main.py'
+      - 'services/frame-extractor/main.py'
+      - 'services/telemetry-extractor/main.py'
+      - 'services/dashboard-api/main.py'
+      - 'services/data-processor/main.py'
+      - 'services/report-generator/main.py'
+      - 'services/ai-inference/main.py'
+
+  - name: 'node:22'
+    id: 'frontend-lint-build'
+    entrypoint: bash
+    args:
+      - '-c'
+      - 'cd services/dashboard-frontend && npm ci && npm run lint && npm run build'
+
+  - name: 'hashicorp/terraform:1.15.3'
+    id: 'terraform-validate'
+    entrypoint: sh
+    args:
+      - '-c'
+      - 'terraform -chdir=terraform init -backend=false && terraform -chdir=terraform fmt -check -recursive && terraform -chdir=terraform validate'
+
   # Build and push service images.
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-telemetry-extractor'
@@ -246,22 +280,78 @@ steps:
       - 'nhai-das-dev-run-sa@$PROJECT_ID.iam.gserviceaccount.com'
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: 'ensure-gcs-upload-trigger'
+    id: 'ensure-gcs-upload-dlq'
     entrypoint: bash
     args:
       - '-c'
       - |
         set -euo pipefail
-        if gcloud eventarc triggers describe nhai-das-dev-gcs-upload --location=asia-south1 >/dev/null 2>&1; then
-          echo "Eventarc trigger nhai-das-dev-gcs-upload already exists."
-        else
-          gcloud eventarc triggers create nhai-das-dev-gcs-upload \
-            --location=asia-south1 \
-            --destination-run-service=video-validator \
-            --destination-run-region=asia-south1 \
-            --event-filters=type=google.cloud.storage.object.v1.finalized \
-            --event-filters=bucket=nhai-das-dev-raw-video \
-            --service-account=nhai-das-dev-run-sa@$PROJECT_ID.iam.gserviceaccount.com
+
+        REGION=asia-south1
+        RAW_BUCKET=nhai-das-dev-raw-video
+        UPLOAD_TOPIC=nhai-das-dev-gcs-upload-events
+        UPLOAD_SUB=nhai-das-dev-gcs-upload-validator-sub
+        DLQ_TOPIC=nhai-das-dev-dlq
+        DLQ_SUB=nhai-das-dev-dlq-sub
+        RUN_SA=nhai-das-dev-run-sa@$PROJECT_ID.iam.gserviceaccount.com
+        PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
+        PUBSUB_SA=service-$PROJECT_NUMBER@gcp-sa-pubsub.iam.gserviceaccount.com
+        VALIDATOR_URL=$(gcloud run services describe video-validator --region="$REGION" --format='value(status.url)')
+
+        if [ -z "$VALIDATOR_URL" ]; then
+          echo "video-validator Cloud Run service URL is empty; cannot create Pub/Sub push subscription." >&2
+          exit 1
+        fi
+
+        if gcloud eventarc triggers describe nhai-das-dev-gcs-upload --location="$REGION" >/dev/null 2>&1; then
+          echo "Removing legacy Eventarc trigger so upload events are delivered through the Pub/Sub DLQ subscription."
+          gcloud eventarc triggers delete nhai-das-dev-gcs-upload --location="$REGION" --quiet
+        fi
+
+        gcloud pubsub topics describe "$UPLOAD_TOPIC" >/dev/null 2>&1 || \
+          gcloud pubsub topics create "$UPLOAD_TOPIC"
+
+        gcloud pubsub topics describe "$DLQ_TOPIC" >/dev/null 2>&1 || \
+          gcloud pubsub topics create "$DLQ_TOPIC"
+
+        gcloud pubsub topics add-iam-policy-binding "$DLQ_TOPIC" \
+          --member="serviceAccount:$PUBSUB_SA" \
+          --role=roles/pubsub.publisher >/dev/null
+
+        if ! gcloud pubsub subscriptions describe "$DLQ_SUB" >/dev/null 2>&1; then
+          gcloud pubsub subscriptions create "$DLQ_SUB" --topic="$DLQ_TOPIC"
+        fi
+
+        if ! gcloud pubsub subscriptions describe "$UPLOAD_SUB" >/dev/null 2>&1; then
+          gcloud pubsub subscriptions create "$UPLOAD_SUB" \
+            --topic="$UPLOAD_TOPIC" \
+            --push-endpoint="$VALIDATOR_URL/" \
+            --push-auth-service-account="$RUN_SA" \
+            --push-auth-token-audience="$VALIDATOR_URL/" \
+            --ack-deadline=60 \
+            --min-retry-delay=10s \
+            --max-retry-delay=600s
+        fi
+
+        gcloud pubsub subscriptions add-iam-policy-binding "$UPLOAD_SUB" \
+          --member="serviceAccount:$PUBSUB_SA" \
+          --role=roles/pubsub.subscriber >/dev/null
+
+        gcloud pubsub subscriptions update "$UPLOAD_SUB" \
+          --push-endpoint="$VALIDATOR_URL/" \
+          --push-auth-service-account="$RUN_SA" \
+          --push-auth-token-audience="$VALIDATOR_URL/" \
+          --dead-letter-topic="$DLQ_TOPIC" \
+          --max-delivery-attempts=5 \
+          --min-retry-delay=10s \
+          --max-retry-delay=600s
+
+        if ! gsutil notification list "gs://$RAW_BUCKET" | grep -F "$UPLOAD_TOPIC" >/dev/null; then
+          gsutil notification create \
+            -t "$UPLOAD_TOPIC" \
+            -f json \
+            -e OBJECT_FINALIZE \
+            "gs://$RAW_BUCKET"
         fi
 
 images:

@@ -1,13 +1,13 @@
 # Enable Compute Engine API
 resource "google_project_service" "compute" {
-  project = var.project_id
-  service = "compute.googleapis.com"
+  project            = var.project_id
+  service            = "compute.googleapis.com"
   disable_on_destroy = false
 }
 
 resource "google_project_service" "vpcaccess" {
-  project = var.project_id
-  service = "vpcaccess.googleapis.com"
+  project            = var.project_id
+  service            = "vpcaccess.googleapis.com"
   disable_on_destroy = false
 }
 
@@ -23,38 +23,38 @@ resource "google_compute_network" "shared_vpc" {
 
 # Subnets
 resource "google_compute_subnetwork" "web" {
-  name          = "subnet-web"
-  project       = var.project_id
-  network       = google_compute_network.shared_vpc.id
-  region        = var.region
-  ip_cidr_range = "10.0.1.0/24"
+  name                     = "subnet-web"
+  project                  = var.project_id
+  network                  = google_compute_network.shared_vpc.id
+  region                   = var.region
+  ip_cidr_range            = "10.0.1.0/24"
   private_ip_google_access = true
 }
 
 resource "google_compute_subnetwork" "app" {
-  name          = "subnet-app"
-  project       = var.project_id
-  network       = google_compute_network.shared_vpc.id
-  region        = var.region
-  ip_cidr_range = "10.0.2.0/24"
+  name                     = "subnet-app"
+  project                  = var.project_id
+  network                  = google_compute_network.shared_vpc.id
+  region                   = var.region
+  ip_cidr_range            = "10.0.2.0/24"
   private_ip_google_access = true
 }
 
 resource "google_compute_subnetwork" "data" {
-  name          = "subnet-data"
-  project       = var.project_id
-  network       = google_compute_network.shared_vpc.id
-  region        = var.region
-  ip_cidr_range = "10.0.3.0/24"
+  name                     = "subnet-data"
+  project                  = var.project_id
+  network                  = google_compute_network.shared_vpc.id
+  region                   = var.region
+  ip_cidr_range            = "10.0.3.0/24"
   private_ip_google_access = true
 }
 
 resource "google_compute_subnetwork" "mgmt" {
-  name          = "subnet-mgmt"
-  project       = var.project_id
-  network       = google_compute_network.shared_vpc.id
-  region        = var.region
-  ip_cidr_range = "10.0.4.0/24"
+  name                     = "subnet-mgmt"
+  project                  = var.project_id
+  network                  = google_compute_network.shared_vpc.id
+  region                   = var.region
+  ip_cidr_range            = "10.0.4.0/24"
   private_ip_google_access = true
 }
 

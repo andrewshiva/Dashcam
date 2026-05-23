@@ -2,6 +2,7 @@ import os
 import tempfile
 import logging
 import json
+import base64
 from typing import Dict, Any
 
 from fastapi import FastAPI, Request, HTTPException
@@ -111,25 +112,52 @@ def start_pipeline_workflow(bucket_name: str, file_name: str) -> dict:
     )
     return {"execution_id": execution_id, "execution_name": execution.name}
 
+def extract_storage_event(body: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalizes Eventarc and Pub/Sub Cloud Storage notifications."""
+    message = body.get("message")
+    if isinstance(message, dict):
+        encoded_data = message.get("data")
+        if encoded_data:
+            try:
+                decoded_data = base64.b64decode(encoded_data).decode("utf-8")
+                return json.loads(decoded_data)
+            except (ValueError, json.JSONDecodeError) as e:
+                raise ValueError(f"Invalid Pub/Sub storage notification payload: {e}") from e
+
+        attributes = message.get("attributes") or {}
+        bucket_id = attributes.get("bucketId") or attributes.get("bucket")
+        object_id = attributes.get("objectId") or attributes.get("name")
+        if bucket_id and object_id:
+            return {"bucket": bucket_id, "name": object_id}
+
+    event_data = body.get("data")
+    if isinstance(event_data, dict):
+        return event_data
+
+    return body
+
 @app.post("/")
 async def handle_eventarc_trigger(request: Request):
     """
-    Endpoint that handles Eventarc messages from GCS object.finalize events.
+    Endpoint that handles Eventarc or Pub/Sub push messages from GCS object.finalize events.
     """
-    # Eventarc sends CloudEvents headers.
-    # The body contains the storage object data.
     try:
         body = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON body")
 
-    # Cloud Storage 'object.finalize' event body has 'bucket' and 'name'
-    bucket_name = body.get("bucket")
-    file_name = body.get("name")
+    try:
+        event_data = extract_storage_event(body)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    # Cloud Storage 'object.finalize' event data has 'bucket' and 'name'
+    bucket_name = event_data.get("bucket")
+    file_name = event_data.get("name")
 
     if not bucket_name or not file_name:
-        logger.warning(f"Ignored event: missing bucket or name in body: {body}")
-        # Return 200 so Eventarc doesn't retry invalid events
+        logger.warning(f"Ignored event: missing bucket or name in body: {event_data}")
+        # Return 200 so invalid storage notifications do not retry forever.
         return {"status": "ignored", "reason": "Not a valid GCS event"}
 
     logger.info(f"Processing new video: gs://{bucket_name}/{file_name}")

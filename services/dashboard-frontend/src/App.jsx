@@ -174,7 +174,7 @@ const anomalyShortName = (type) => {
   const t = type.toLowerCase();
   if (t.includes('pothole')) return 'POTHOLE';
   if (t.includes('signage')) return 'MISSING SIGNAGE';
-  if (t.includes('crack')) return 'ROAD CRACK';
+  if (t.includes('crack')) return 'ALLIGATOR CRACKING';
   if (t.includes('deterioration')) return 'SURFACE DAMAGE';
   return t.replace('_', ' ').toUpperCase();
 };
@@ -327,9 +327,12 @@ const App = () => {
   const selectedPiu = piuOptions.find(item => item.piu_name === reportForm.piu_name);
   const upcOptions = selectedPiu?.upc_codes || [];
   const isRoUser = currentUser?.role === 'ro';
-  const isUploadLimitReached = false;
-  const isUploadEnabled = true;
-  const uploadDisabledReason = '';
+  const currentDailyUploadCount = isRoUser ? dailyUploadCount : 0;
+  const isUploadLimitReached = isRoUser && currentDailyUploadCount >= DAILY_RO_UPLOAD_LIMIT;
+  const isUploadEnabled = !isUploadLimitReached;
+  const uploadDisabledReason = isUploadLimitReached
+    ? `RO daily upload limit reached (${DAILY_RO_UPLOAD_LIMIT} videos).`
+    : '';
 
   const handleLogin = ({ username, password }) => {
     const userSession = authenticateUser({ username, password });
@@ -442,6 +445,12 @@ const App = () => {
 
   const handleUpload = async (file) => {
     if (!file) return;
+
+    if (!isUploadEnabled) {
+      setErrorMessage(uploadDisabledReason || 'Upload is currently unavailable.');
+      setUploadState('error');
+      return;
+    }
 
     const allowedTypes = ['.mp4', '.mov', '.avi', '.mkv'];
     const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));

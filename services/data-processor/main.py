@@ -179,17 +179,6 @@ async def process_inference(data: Union[BatchInferenceResult, InferenceResult]):
             )
         ]
 
-    # If the list is empty, default to a 'road_clear' observation (matches legacy fallback)
-    if not detections:
-        detections = [
-            DetectionItem(
-                frame_id="frame_0000.jpg",
-                detection_type="road_clear",
-                confidence=0.90,
-                annotation=None
-            )
-        ]
-
     logger.info(f"Processing batch of {len(detections)} inference results for video: {video_id}")
     
     async with async_session() as session:

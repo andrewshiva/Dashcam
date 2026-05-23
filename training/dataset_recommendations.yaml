@@ -1,0 +1,305 @@
+sources:
+  RDD2022:
+    url: https://github.com/sekilab/RoadDamageDetector
+    canonical_reference: https://figshare.com/articles/dataset/RDD2022_-_The_multi-national_Road_Damage_Dataset_released_through_CRDDC_2022/21431547
+    annotation_types: [bounding_box]
+    useful_for: [pothole, alligator_cracking]
+    notes: Official RDD2022 annotations include D00 longitudinal crack, D10 transverse crack, D20 alligator crack, and D40 pothole. Use India split first for domain fit.
+  PaveBench:
+    url: https://huggingface.co/datasets/MML-Group/PaveBench
+    annotation_types: [classification, bounding_box, segmentation]
+    useful_for: [pothole, alligator_cracking, rutting]
+    notes: Real highway pavement images with detection and segmentation style annotations; strong pavement-distress supplement where available.
+  Mapillary_Vistas:
+    url: https://www.mapillary.com/dataset/vistas
+    paper: https://openaccess.thecvf.com/content_ICCV_2017/papers/Neuhold_The_Mapillary_Vistas_ICCV_2017_paper.pdf
+    annotation_types: [segmentation, instance_segmentation, bounding_box]
+    useful_for: [shoulder_vegetation, median_obstruction, overgrown_plantation, bent_guard_rail, damaged_bus_shelter]
+    notes: Good street-scene context and assets; most damage states still need custom relabeling.
+  Mapillary_Traffic_Sign:
+    paper: https://arxiv.org/abs/1909.04422
+    annotation_types: [bounding_box, classification]
+    useful_for: [damaged_signboard, illegible_overhead_sign, damaged_lay_by_sign]
+    notes: Good for sign localization/classification; damage, illegibility, and retroreflective states require custom relabeling.
+  BDD100K:
+    url: https://github.com/bdd100k/bdd100k
+    paper: https://openaccess.thecvf.com/content_CVPR_2020/html/Yu_BDD100K_A_Diverse_Driving_Dataset_for_Heterogeneous_Multitask_Learning_CVPR_2020_paper.html
+    annotation_types: [detection, lane, segmentation, night_video]
+    useful_for: [water_stagnation, missing_lane_marking, poor_night_visibility, broken_streetlight, dark_highway_segment]
+    notes: Best as context/night/lane source; defect semantics need NHAI-specific labels.
+  CULane:
+    url: https://xingangpan.github.io/projects/CULane.html
+    annotation_types: [lane_segmentation]
+    useful_for: [faded_lane_marking, faded_bus_bay_marking]
+    notes: Use for lane visibility and marking presence; faded/damaged labels need custom relabeling.
+  Indian_Footpath_Damage:
+    url: https://zenodo.org/records/15414238
+    annotation_types: [segmentation]
+    useful_for: [broken_paver_blocks, missing_tiles, uneven_footpath]
+    notes: India-specific footpath damage segmentation; convert masks to boxes for YOLO detection or keep masks for segmentation training.
+  Custom_NHAI_Dashcam:
+    url: internal
+    annotation_types: [bounding_box, polygon, segmentation]
+    useful_for:
+      - rain_cut
+      - edge_drop
+      - uneven_shoulder
+      - broken_kerb
+      - faded_kerb_paint
+      - missing_plantation
+      - dead_plantation
+      - missing_drain_cover
+      - drain_blockage
+      - damaged_cc_barrier
+      - faded_mbcb_paint
+      - missing_retroreflective_sheeting
+      - damaged_blinker
+      - broken_delineator
+      - damaged_attenuator
+      - anti_glare_screen_damage
+      - damaged_road_stud
+      - worn_rumble_strip
+      - non_functional_lighting
+    notes: Required for NHAI-specific asset condition states with no reliable public benchmark.
+
+anomaly_plan:
+  pothole:
+    primary: RDD2022
+    secondary: PaveBench
+    annotation_type: bounding_box
+    test_target_images: 25
+    readiness: public_train_public_test
+  alligator_cracking:
+    primary: RDD2022
+    secondary: PaveBench
+    annotation_type: bounding_box
+    test_target_images: 25
+    readiness: public_train_public_test
+  rutting:
+    primary: PaveBench
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: segmentation_to_box
+    test_target_images: 25
+    readiness: public_seed_custom_test
+  rain_cut:
+    primary: Custom_NHAI_Dashcam
+    secondary: RDD2022
+    annotation_type: polygon_to_box
+    test_target_images: 25
+    readiness: custom_required
+  edge_drop:
+    primary: Custom_NHAI_Dashcam
+    secondary: Mapillary_Vistas
+    annotation_type: polygon_to_box
+    test_target_images: 25
+    readiness: custom_required
+  uneven_shoulder:
+    primary: Custom_NHAI_Dashcam
+    secondary: Mapillary_Vistas
+    annotation_type: polygon_to_box
+    test_target_images: 25
+    readiness: custom_required
+  shoulder_vegetation:
+    primary: Mapillary_Vistas
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: segmentation_to_box
+    test_target_images: 25
+    readiness: public_seed_custom_test
+  broken_kerb:
+    primary: Custom_NHAI_Dashcam
+    secondary: Mapillary_Vistas
+    annotation_type: polygon_to_box
+    test_target_images: 25
+    readiness: custom_required
+  faded_kerb_paint:
+    primary: Custom_NHAI_Dashcam
+    secondary: CULane
+    annotation_type: polygon_to_box
+    test_target_images: 25
+    readiness: custom_required
+  median_obstruction:
+    primary: Mapillary_Vistas
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: segmentation_to_box
+    test_target_images: 25
+    readiness: public_seed_custom_test
+  missing_plantation:
+    primary: Custom_NHAI_Dashcam
+    secondary: Mapillary_Vistas
+    annotation_type: detection
+    test_target_images: 25
+    readiness: custom_required
+  dead_plantation:
+    primary: Custom_NHAI_Dashcam
+    secondary: Mapillary_Vistas
+    annotation_type: detection
+    test_target_images: 25
+    readiness: custom_required
+  overgrown_plantation:
+    primary: Mapillary_Vistas
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: segmentation_to_box
+    test_target_images: 25
+    readiness: public_seed_custom_test
+  missing_drain_cover:
+    primary: Custom_NHAI_Dashcam
+    secondary: Mapillary_Vistas
+    annotation_type: bounding_box
+    test_target_images: 25
+    readiness: custom_required
+  water_stagnation:
+    primary: BDD100K
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: segmentation_to_box
+    test_target_images: 25
+    readiness: public_seed_custom_test
+  drain_blockage:
+    primary: Custom_NHAI_Dashcam
+    secondary: Mapillary_Vistas
+    annotation_type: polygon_to_box
+    test_target_images: 25
+    readiness: custom_required
+  broken_paver_blocks:
+    primary: Indian_Footpath_Damage
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: segmentation_to_box
+    test_target_images: 25
+    readiness: public_train_public_test
+  missing_tiles:
+    primary: Indian_Footpath_Damage
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: segmentation_to_box
+    test_target_images: 25
+    readiness: public_train_public_test
+  uneven_footpath:
+    primary: Indian_Footpath_Damage
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: segmentation_to_box
+    test_target_images: 25
+    readiness: public_train_public_test
+  damaged_cc_barrier:
+    primary: Custom_NHAI_Dashcam
+    secondary: Mapillary_Vistas
+    annotation_type: detection
+    test_target_images: 25
+    readiness: custom_required
+  bent_guard_rail:
+    primary: Mapillary_Vistas
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: detection
+    test_target_images: 25
+    readiness: public_seed_custom_test
+  faded_mbcb_paint:
+    primary: Custom_NHAI_Dashcam
+    secondary: Mapillary_Vistas
+    annotation_type: segmentation_to_box
+    test_target_images: 25
+    readiness: custom_required
+  damaged_signboard:
+    primary: Mapillary_Traffic_Sign
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: detection
+    test_target_images: 25
+    readiness: public_seed_custom_test
+  missing_retroreflective_sheeting:
+    primary: Custom_NHAI_Dashcam
+    secondary: BDD100K
+    annotation_type: detection
+    test_target_images: 25
+    readiness: custom_required
+  illegible_overhead_sign:
+    primary: Mapillary_Traffic_Sign
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: detection
+    test_target_images: 25
+    readiness: public_seed_custom_test
+  poor_night_visibility:
+    primary: BDD100K
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: detection
+    test_target_images: 25
+    readiness: public_seed_custom_test
+  damaged_blinker:
+    primary: Custom_NHAI_Dashcam
+    secondary: Mapillary_Vistas
+    annotation_type: detection
+    test_target_images: 25
+    readiness: custom_required
+  broken_delineator:
+    primary: Custom_NHAI_Dashcam
+    secondary: Mapillary_Vistas
+    annotation_type: detection
+    test_target_images: 25
+    readiness: custom_required
+  damaged_attenuator:
+    primary: Custom_NHAI_Dashcam
+    secondary: Mapillary_Vistas
+    annotation_type: detection
+    test_target_images: 25
+    readiness: custom_required
+  anti_glare_screen_damage:
+    primary: Custom_NHAI_Dashcam
+    secondary: Mapillary_Vistas
+    annotation_type: detection
+    test_target_images: 25
+    readiness: custom_required
+  faded_lane_marking:
+    primary: CULane
+    secondary: BDD100K
+    annotation_type: lane_segmentation_to_box
+    test_target_images: 25
+    readiness: public_seed_custom_test
+  missing_lane_marking:
+    primary: BDD100K
+    secondary: CULane
+    annotation_type: segmentation_to_box
+    test_target_images: 25
+    readiness: public_seed_custom_test
+  damaged_road_stud:
+    primary: Custom_NHAI_Dashcam
+    secondary: Mapillary_Vistas
+    annotation_type: detection
+    test_target_images: 25
+    readiness: custom_required
+  worn_rumble_strip:
+    primary: Custom_NHAI_Dashcam
+    secondary: CULane
+    annotation_type: segmentation_to_box
+    test_target_images: 25
+    readiness: custom_required
+  damaged_bus_shelter:
+    primary: Mapillary_Vistas
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: detection
+    test_target_images: 25
+    readiness: public_seed_custom_test
+  faded_bus_bay_marking:
+    primary: CULane
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: lane_segmentation_to_box
+    test_target_images: 25
+    readiness: public_seed_custom_test
+  damaged_lay_by_sign:
+    primary: Mapillary_Traffic_Sign
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: detection
+    test_target_images: 25
+    readiness: public_seed_custom_test
+  broken_streetlight:
+    primary: BDD100K
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: detection
+    test_target_images: 25
+    readiness: public_seed_custom_test
+  non_functional_lighting:
+    primary: Custom_NHAI_Dashcam
+    secondary: BDD100K
+    annotation_type: detection
+    test_target_images: 25
+    readiness: custom_required
+  dark_highway_segment:
+    primary: BDD100K
+    secondary: Custom_NHAI_Dashcam
+    annotation_type: segmentation_to_box
+    test_target_images: 25
+    readiness: public_seed_custom_test

@@ -4,9 +4,9 @@ NHAI_TOR_ANOMALIES = {
         "label": "Potholes",
         "model_group": "pavement_model",
     },
-    "cracking": {
+    "alligator_cracking": {
         "category": "pavement",
-        "label": "Cracking",
+        "label": "Alligator Cracking",
         "model_group": "pavement_model",
     },
     "rutting": {
@@ -15,48 +15,58 @@ NHAI_TOR_ANOMALIES = {
         "model_group": "pavement_model",
     },
     "rain_cut": {
-        "category": "shoulders",
+        "category": "pavement",
         "label": "Rain Cuts",
-        "model_group": "shoulder_model",
+        "model_group": "pavement_model",
     },
-    "edge_drop_uneven_shoulder": {
+    "edge_drop": {
         "category": "shoulders",
-        "label": "Edge Drop & Unevenness of Shoulders",
+        "label": "Edge Drop",
         "model_group": "shoulder_model",
     },
-    "vegetation_growth_shoulder": {
+    "uneven_shoulder": {
         "category": "shoulders",
-        "label": "Vegetation Growth on Shoulders",
+        "label": "Uneven Shoulder",
         "model_group": "shoulder_model",
     },
-    "damaged_kerb": {
+    "shoulder_vegetation": {
+        "category": "shoulders",
+        "label": "Shoulder Vegetation",
+        "model_group": "shoulder_model",
+    },
+    "broken_kerb": {
         "category": "kerb_median",
-        "label": "Damaged Kerb",
+        "label": "Broken Kerb",
         "model_group": "kerb_median_model",
     },
-    "faded_kerb_painting": {
+    "faded_kerb_paint": {
         "category": "kerb_median",
-        "label": "Faded Kerb Painting",
+        "label": "Faded Kerb Paint",
         "model_group": "kerb_median_model",
     },
-    "reduced_sight_distance_plantation": {
+    "median_obstruction": {
+        "category": "kerb_median",
+        "label": "Median Obstruction",
+        "model_group": "kerb_median_model",
+    },
+    "missing_plantation": {
         "category": "plantation",
-        "label": "Reduced Visibility/Sight Distance due to Plantation Growth",
+        "label": "Missing Plantation",
         "model_group": "plantation_model",
     },
-    "missing_plants_irregular_gaps": {
+    "dead_plantation": {
         "category": "plantation",
-        "label": "Missing Plants/Irregular Gaps in Plantation",
+        "label": "Dead Plantation",
         "model_group": "plantation_model",
     },
-    "damaged_deteriorated_plants": {
+    "overgrown_plantation": {
         "category": "plantation",
-        "label": "Deteriorated/Damaged Plants",
+        "label": "Overgrown Plantation",
         "model_group": "plantation_model",
     },
-    "damaged_missing_drain_cover": {
+    "missing_drain_cover": {
         "category": "drainage",
-        "label": "Damaged/Missing Cover Slabs over Drain",
+        "label": "Missing Drain Cover",
         "model_group": "drainage_model",
     },
     "water_stagnation": {
@@ -64,54 +74,99 @@ NHAI_TOR_ANOMALIES = {
         "label": "Water Stagnation",
         "model_group": "drainage_model",
     },
-    "damaged_footpath": {
+    "drain_blockage": {
+        "category": "drainage",
+        "label": "Drain Blockage",
+        "model_group": "drainage_model",
+    },
+    "broken_paver_blocks": {
         "category": "footpath",
-        "label": "Damaged Footpath",
+        "label": "Broken Paver Blocks",
         "model_group": "footpath_model",
     },
-    "damaged_crash_barrier": {
+    "missing_tiles": {
+        "category": "footpath",
+        "label": "Missing Tiles",
+        "model_group": "footpath_model",
+    },
+    "uneven_footpath": {
+        "category": "footpath",
+        "label": "Uneven Footpath",
+        "model_group": "footpath_model",
+    },
+    "damaged_cc_barrier": {
         "category": "crash_barrier",
-        "label": "Damaged Crash Barrier",
+        "label": "Damaged CC Barrier",
         "model_group": "crash_barrier_model",
     },
-    "faded_crash_barrier_painting": {
+    "bent_guard_rail": {
         "category": "crash_barrier",
-        "label": "Faded Painting of Crash Barrier & Guard Rail",
+        "label": "Bent Guard Rail",
+        "model_group": "crash_barrier_model",
+    },
+    "faded_mbcb_paint": {
+        "category": "crash_barrier",
+        "label": "Faded MBCB Paint",
         "model_group": "crash_barrier_model",
     },
     "damaged_signboard": {
         "category": "signboards_overhead_structures",
-        "label": "Damaged Sign Boards/Sign Structures",
+        "label": "Damaged Signboards",
         "model_group": "signage_model",
     },
-    "poor_signboard_visibility": {
+    "missing_retroreflective_sheeting": {
         "category": "signboards_overhead_structures",
-        "label": "Visibility of Signages",
+        "label": "Missing Retroreflective Sheeting",
         "model_group": "signage_model",
     },
-    "damaged_blinker_attenuator_delineator_antiglare": {
+    "illegible_overhead_sign": {
+        "category": "signboards_overhead_structures",
+        "label": "Illegible Overhead Signs",
+        "model_group": "signage_model",
+    },
+    "poor_night_visibility": {
+        "category": "signboards_overhead_structures",
+        "label": "Poor Night Visibility",
+        "model_group": "signage_model",
+    },
+    "damaged_blinker": {
         "category": "road_furniture",
-        "label": "Damaged Blinkers/Attenuators/Delineators/Anti-Glare",
+        "label": "Damaged Blinkers",
         "model_group": "road_furniture_model",
     },
-    "damaged_road_stud_rumble_strip_hazard_marker": {
+    "broken_delineator": {
         "category": "road_furniture",
-        "label": "Damaged Road Studs/Rumble Strips/Hazard Markers",
+        "label": "Broken Delineators",
         "model_group": "road_furniture_model",
     },
-    "poor_marker_visibility": {
+    "damaged_attenuator": {
         "category": "road_furniture",
-        "label": "Visibility of Road Studs/Hazard Markers",
+        "label": "Damaged Attenuators",
         "model_group": "road_furniture_model",
     },
-    "faded_pavement_marking": {
+    "anti_glare_screen_damage": {
+        "category": "road_furniture",
+        "label": "Anti-Glare Screen Damage",
+        "model_group": "road_furniture_model",
+    },
+    "faded_lane_marking": {
         "category": "pavement_marking",
-        "label": "Faded Pavement Marking",
+        "label": "Faded Lane Marking",
         "model_group": "pavement_marking_model",
     },
-    "poor_pavement_marking_visibility": {
+    "missing_lane_marking": {
         "category": "pavement_marking",
-        "label": "Pavement Marking Visibility",
+        "label": "Missing Lane Marking",
+        "model_group": "pavement_marking_model",
+    },
+    "damaged_road_stud": {
+        "category": "pavement_marking",
+        "label": "Damaged Road Studs",
+        "model_group": "pavement_marking_model",
+    },
+    "worn_rumble_strip": {
+        "category": "pavement_marking",
+        "label": "Worn Rumble Strips",
         "model_group": "pavement_marking_model",
     },
     "damaged_bus_shelter": {
@@ -119,20 +174,30 @@ NHAI_TOR_ANOMALIES = {
         "label": "Damaged Bus Shelter",
         "model_group": "bus_bay_model",
     },
-    "bus_bay_truck_lay_bye_defect": {
+    "faded_bus_bay_marking": {
         "category": "bus_bay_truck_lay_bye",
-        "label": "Bus Bay/Truck Lay Bye Defect",
+        "label": "Faded Bus Bay Marking",
         "model_group": "bus_bay_model",
     },
-    "damaged_highway_lighting": {
+    "damaged_lay_by_sign": {
+        "category": "bus_bay_truck_lay_bye",
+        "label": "Damaged Lay-By Sign",
+        "model_group": "bus_bay_model",
+    },
+    "broken_streetlight": {
         "category": "highway_lighting",
-        "label": "Damaged Highway Lights",
+        "label": "Broken Streetlight",
         "model_group": "lighting_model",
     },
-    "road_clear": {
-        "category": "status",
-        "label": "Road Clear",
-        "model_group": "fallback",
+    "non_functional_lighting": {
+        "category": "highway_lighting",
+        "label": "Non-Functional Lighting",
+        "model_group": "lighting_model",
+    },
+    "dark_highway_segment": {
+        "category": "highway_lighting",
+        "label": "Dark Highway Segment",
+        "model_group": "lighting_model",
     },
 }
 

@@ -1,0 +1,24 @@
+steps:
+  - name: 'hashicorp/terraform:1.15.3'
+    id: 'terraform-init'
+    entrypoint: sh
+    args:
+      - '-c'
+      - 'terraform -chdir=terraform init -backend=false'
+
+  - name: 'hashicorp/terraform:1.15.3'
+    id: 'terraform-fmt-check'
+    entrypoint: sh
+    args:
+      - '-c'
+      - 'terraform -chdir=terraform fmt -check -recursive'
+
+  - name: 'hashicorp/terraform:1.15.3'
+    id: 'terraform-validate'
+    entrypoint: sh
+    args:
+      - '-c'
+      - 'terraform -chdir=terraform validate'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

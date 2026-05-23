@@ -1,12 +1,12 @@
 resource "google_project_service" "sqladmin_api" {
-  project = var.project_id
-  service = "sqladmin.googleapis.com"
+  project            = var.project_id
+  service            = "sqladmin.googleapis.com"
   disable_on_destroy = false
 }
 
 resource "google_project_service" "servicenetworking_api" {
-  project = var.project_id
-  service = "servicenetworking.googleapis.com"
+  project            = var.project_id
+  service            = "servicenetworking.googleapis.com"
   disable_on_destroy = false
 }
 
@@ -36,9 +36,9 @@ resource "google_sql_database_instance" "postgres" {
 
   settings {
     tier = "db-custom-2-7680" # 2 vCPU, 7.5 GB RAM
-    
+
     availability_type = "REGIONAL" # HA
-    
+
     backup_configuration {
       enabled                        = true
       point_in_time_recovery_enabled = true
@@ -52,9 +52,9 @@ resource "google_sql_database_instance" "postgres" {
 }
 
 resource "google_sql_database" "database" {
-  name       = var.db_name
-  instance   = google_sql_database_instance.postgres.name
-  project    = var.project_id
+  name     = var.db_name
+  instance = google_sql_database_instance.postgres.name
+  project  = var.project_id
 }
 
 resource "google_sql_user" "app_user" {

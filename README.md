@@ -10,7 +10,7 @@ The system is deployed under a **Single Unified GCP Project** (`peppy-castle-276
 
 ### Core Processing Pipeline:
 1. **Upload**: Dashcam footage is uploaded to `gs://nhai-das-dev-raw-video/`.
-2. **Validation**: An Eventarc trigger invokes the `video-validator` service. Corrupted clips are quarantined; healthy videos trigger the Cloud Workflow.
+2. **Validation**: A Cloud Storage Pub/Sub notification invokes the `video-validator` service through a push subscription with retry and DLQ handling. Corrupted clips are quarantined; healthy videos trigger the Cloud Workflow.
 3. **Extraction & Inference**: The Workflow runs `telemetry-extractor` (to extract GPS EXIF headers) and `ai-inference` (YOLOv8 + CV road surface analysis) in parallel.
 4. **Ingestion**: Results are ingested into a Cloud SQL PostgreSQL PostGIS spatial database (`nhaidb`).
 5. **Dashboard & Reporting**: NHAI operators view defects live on an interactive Leaflet GIS dark map and generate compliance-ready PDF reports.
@@ -19,8 +19,9 @@ The system is deployed under a **Single Unified GCP Project** (`peppy-castle-276
 
 ```mermaid
 flowchart LR
-    GCS["GCS Video Upload"] --> Eventarc["Eventarc Trigger"]
-    Eventarc --> Validator["Video Validator"]
+    GCS["GCS Video Upload"] --> PubSub["Pub/Sub Upload Topic"]
+    PubSub --> Validator["Video Validator"]
+    PubSub --> DLQ["Dead-Letter Queue"]
     Validator --> Workflow["Cloud Workflow"]
     Workflow --> Telemetry["Telemetry Extraction"]
     Workflow --> AI["AI Inference"]
@@ -110,7 +111,7 @@ This project is built as a cloud-native, event-driven dashcam analytics pipeline
 
 ### NHAI TOR Taxonomy
 
-A full NHAI TOR anomaly taxonomy has been added so the software contract can support all required anomaly categories:
+A custom-training NHAI TOR anomaly taxonomy has been added so the software contract can support 40 specific anomaly classes across the required categories:
 - pavement
 - shoulders
 - kerb and median
@@ -124,14 +125,14 @@ A full NHAI TOR anomaly taxonomy has been added so the software contract can sup
 - bus bay and truck lay-bye
 - highway lighting
 
-Actual accuracy for every anomaly depends on training and deploying the correct model weights.
+Actual accuracy for every anomaly depends on sourcing, labeling, training, and deploying the correct model weights. The training plan and dataset source manifest live in `training/`.
 
 ### Cloud Platform
 
 **Google Cloud Platform**
 - Cloud Run hosts the microservices.
 - Cloud Storage stores raw videos, validated videos, processed frames/metadata, and quarantined files.
-- Eventarc triggers ingestion when videos are uploaded.
+- Cloud Storage Pub/Sub notifications trigger ingestion when videos are uploaded.
 - Cloud Workflows orchestrates frame extraction, telemetry extraction, AI inference, and database ingestion.
 - Cloud SQL PostgreSQL with PostGIS stores geospatial detection results.
 - Cloud Monitoring and Logging handle operational alerts.
@@ -154,10 +155,15 @@ Actual accuracy for every anomaly depends on training and deploying the correct 
 ### Infrastructure & Deployment
 
 **Terraform**
-- Used to define cloud resources repeatably: networking, buckets, database, IAM, monitoring, billing, and messaging resources.
+- Used to define cloud resources repeatably: networking, buckets, database, IAM, monitoring, billing, messaging, API Gateway, and Cloud Build triggers.
+- API Gateway publishes the Dashboard API with quota-backed read/write limits.
+- Cloud Monitoring includes uptime, DLQ, pipeline-failure, and Cloud Run error alerts.
+- Billing budgets send updates to the configured Monitoring notification channel when a billing account is provided.
 
 **Cloud Build**
+- Runs Python, frontend, and Terraform validation checks before building deployable images.
 - Builds Docker images, deploys Cloud Run services, deploys the workflow, and ensures the upload trigger exists.
+- `cloudbuild-terraform.yaml` validates Terraform-only changes. GitHub-backed triggers are created when `enable_cloud_build_triggers`, `github_owner`, and `github_repo` are set.
 
 ### Reporting
 
@@ -168,10 +174,14 @@ Actual accuracy for every anomaly depends on training and deploying the correct 
 ### Reliability Implemented
 
 - Invalid video quarantine
+- Pub/Sub retry and DLQ handling for upload delivery failures
+- API Gateway quotas for dashboard reads and writes
 - Cloud Workflow retries
 - Stage-level `pipeline_events`
 - `PIPELINE_FAILURE` logging
-- Email alert hook through Cloud Monitoring
+- Email alerting through Cloud Monitoring
+- Dashboard synthetic uptime checks
+- Billing budget alerts
 - Pipeline timeout/stuck detection
 - Dashboard/API status visibility
 

@@ -24,8 +24,8 @@ data "google_project" "project" {
 # Identity-Aware Proxy (IAP) - this requires an OAuth brand and client which usually requires manual consent screen config, 
 # but we can enable the API and set up the base resources.
 resource "google_project_service" "iap" {
-  project = var.project_id
-  service = "iap.googleapis.com"
+  project                    = var.project_id
+  service                    = "iap.googleapis.com"
   disable_dependent_services = false
   disable_on_destroy         = false
 }
@@ -57,6 +57,18 @@ resource "google_project_iam_member" "cloud_build_workflows_admin" {
 resource "google_project_iam_member" "cloud_build_eventarc_admin" {
   project = var.project_id
   role    = "roles/eventarc.admin"
+  member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+}
+
+resource "google_project_iam_member" "cloud_build_pubsub_admin" {
+  project = var.project_id
+  role    = "roles/pubsub.admin"
+  member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+}
+
+resource "google_project_iam_member" "cloud_build_storage_admin" {
+  project = var.project_id
+  role    = "roles/storage.admin"
   member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
 }
 

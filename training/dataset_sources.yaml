@@ -1,0 +1,241 @@
+sources:
+  - category: pavement
+    anomaly_code: pothole
+    label: Potholes
+    dataset: RDD2022
+    annotation_type: bounding_box
+    notes: India included.
+  - category: pavement
+    anomaly_code: alligator_cracking
+    label: Alligator Cracking
+    dataset: RDD2022
+    annotation_type: bounding_box
+    notes: Crack classes available.
+  - category: pavement
+    anomaly_code: rutting
+    label: Rutting
+    dataset: PaveDistress
+    annotation_type: segmentation
+    notes: Convert masks to detection boxes for YOLO detection training, or train a segmentation model separately.
+  - category: pavement
+    anomaly_code: rain_cut
+    label: Rain Cuts
+    dataset: Custom annotation required
+    annotation_type: polygon
+    notes: Rare public dataset; prioritize NHAI dashcam labeling.
+  - category: shoulders
+    anomaly_code: edge_drop
+    label: Edge Drop
+    dataset: Custom NHAI dataset
+    annotation_type: polygon
+    notes: Need dashcam annotation.
+  - category: shoulders
+    anomaly_code: uneven_shoulder
+    label: Uneven Shoulder
+    dataset: Custom NHAI dataset
+    annotation_type: polygon
+    notes: No public benchmark.
+  - category: shoulders
+    anomaly_code: shoulder_vegetation
+    label: Shoulder Vegetation
+    dataset: Mapillary Vistas
+    annotation_type: segmentation
+    notes: Use vegetation masks plus local shoulder context.
+  - category: kerb_median
+    anomaly_code: broken_kerb
+    label: Broken Kerb
+    dataset: Custom annotation
+    annotation_type: polygon
+    notes: Public dataset unavailable.
+  - category: kerb_median
+    anomaly_code: faded_kerb_paint
+    label: Faded Kerb Paint
+    dataset: Custom annotation
+    annotation_type: polygon
+    notes: Need highway survey labeling.
+  - category: kerb_median
+    anomaly_code: median_obstruction
+    label: Median Obstruction
+    dataset: Mapillary Vistas
+    annotation_type: segmentation
+    notes: Median-adjacent objects available; obstruction label still needs curation.
+  - category: plantation
+    anomaly_code: missing_plantation
+    label: Missing Plantation
+    dataset: Custom annotation
+    annotation_type: detection
+    notes: Need NHAI labeling.
+  - category: plantation
+    anomaly_code: dead_plantation
+    label: Dead Plantation
+    dataset: Custom annotation
+    annotation_type: detection
+    notes: Domain-specific.
+  - category: plantation
+    anomaly_code: overgrown_plantation
+    label: Overgrown Plantation
+    dataset: Mapillary Vistas
+    annotation_type: segmentation
+    notes: Use trees/vegetation masks plus road-visibility labeling.
+  - category: drainage
+    anomaly_code: missing_drain_cover
+    label: Missing Drain Cover
+    dataset: Custom annotation
+    annotation_type: bounding_box
+    notes: Highway-specific.
+  - category: drainage
+    anomaly_code: water_stagnation
+    label: Water Stagnation
+    dataset: BDD100K + custom
+    annotation_type: segmentation
+    notes: Water regions need highway-specific relabeling.
+  - category: drainage
+    anomaly_code: drain_blockage
+    label: Drain Blockage
+    dataset: Custom annotation
+    annotation_type: polygon
+    notes: No benchmark.
+  - category: footpath
+    anomaly_code: broken_paver_blocks
+    label: Broken Paver Blocks
+    dataset: Footpath Damage Dataset
+    annotation_type: segmentation
+    notes: Convert masks to boxes for detector training.
+  - category: footpath
+    anomaly_code: missing_tiles
+    label: Missing Tiles
+    dataset: Footpath Damage Dataset
+    annotation_type: segmentation
+    notes: Sidewalk damage.
+  - category: footpath
+    anomaly_code: uneven_footpath
+    label: Uneven Footpath
+    dataset: Footpath Damage Dataset
+    annotation_type: segmentation
+    notes: Pavement deformation.
+  - category: crash_barrier
+    anomaly_code: damaged_cc_barrier
+    label: Damaged CC Barrier
+    dataset: Custom annotation
+    annotation_type: detection
+    notes: Highway assets.
+  - category: crash_barrier
+    anomaly_code: bent_guard_rail
+    label: Bent Guard Rail
+    dataset: Mapillary Vistas
+    annotation_type: detection
+    notes: Barrier objects available; bent/damaged state needs curation.
+  - category: crash_barrier
+    anomaly_code: faded_mbcb_paint
+    label: Faded MBCB Paint
+    dataset: Custom annotation
+    annotation_type: segmentation
+    notes: Highway-specific.
+  - category: signboards_overhead_structures
+    anomaly_code: damaged_signboard
+    label: Damaged Signboards
+    dataset: Mapillary Traffic Sign Dataset
+    annotation_type: detection
+    notes: Traffic sign localization can seed the asset detector; damage needs custom labels.
+  - category: signboards_overhead_structures
+    anomaly_code: missing_retroreflective_sheeting
+    label: Missing Retroreflective Sheeting
+    dataset: Custom night annotation
+    annotation_type: detection
+    notes: Night survey needed.
+  - category: signboards_overhead_structures
+    anomaly_code: illegible_overhead_sign
+    label: Illegible Overhead Signs
+    dataset: Mapillary + custom
+    annotation_type: detection
+    notes: Fine-tuning required.
+  - category: signboards_overhead_structures
+    anomaly_code: poor_night_visibility
+    label: Poor Night Visibility
+    dataset: BDD100K Night
+    annotation_type: detection
+    notes: Night driving.
+  - category: road_furniture
+    anomaly_code: damaged_blinker
+    label: Damaged Blinkers
+    dataset: Custom annotation
+    annotation_type: detection
+    notes: Work zone assets.
+  - category: road_furniture
+    anomaly_code: broken_delineator
+    label: Broken Delineators
+    dataset: Custom annotation
+    annotation_type: detection
+    notes: Highway-specific.
+  - category: road_furniture
+    anomaly_code: damaged_attenuator
+    label: Damaged Attenuators
+    dataset: Custom annotation
+    annotation_type: detection
+    notes: Highway safety assets.
+  - category: road_furniture
+    anomaly_code: anti_glare_screen_damage
+    label: Anti-Glare Screen Damage
+    dataset: Custom annotation
+    annotation_type: detection
+    notes: No benchmark dataset.
+  - category: pavement_marking
+    anomaly_code: faded_lane_marking
+    label: Faded Lane Marking
+    dataset: CULane
+    annotation_type: lane_segmentation
+    notes: Lane visibility.
+  - category: pavement_marking
+    anomaly_code: missing_lane_marking
+    label: Missing Lane Marking
+    dataset: BDD100K
+    annotation_type: segmentation
+    notes: Highway lanes.
+  - category: pavement_marking
+    anomaly_code: damaged_road_stud
+    label: Damaged Road Studs
+    dataset: Custom annotation
+    annotation_type: detection
+    notes: Cat-eye failure.
+  - category: pavement_marking
+    anomaly_code: worn_rumble_strip
+    label: Worn Rumble Strips
+    dataset: Custom annotation
+    annotation_type: segmentation
+    notes: Need field labeling.
+  - category: bus_bay_truck_lay_bye
+    anomaly_code: damaged_bus_shelter
+    label: Damaged Bus Shelter
+    dataset: Mapillary Vistas + custom
+    annotation_type: detection
+    notes: Shelter object.
+  - category: bus_bay_truck_lay_bye
+    anomaly_code: faded_bus_bay_marking
+    label: Faded Bus Bay Marking
+    dataset: CULane
+    annotation_type: segmentation
+    notes: Road marking.
+  - category: bus_bay_truck_lay_bye
+    anomaly_code: damaged_lay_by_sign
+    label: Damaged Lay-By Sign
+    dataset: Mapillary Traffic Sign
+    annotation_type: detection
+    notes: Sign assets.
+  - category: highway_lighting
+    anomaly_code: broken_streetlight
+    label: Broken Streetlight
+    dataset: BDD100K Night + custom
+    annotation_type: detection
+    notes: Night imagery.
+  - category: highway_lighting
+    anomaly_code: non_functional_lighting
+    label: Non-Functional Lighting
+    dataset: Custom night survey
+    annotation_type: detection
+    notes: Domain-specific.
+  - category: highway_lighting
+    anomaly_code: dark_highway_segment
+    label: Dark Highway Segment
+    dataset: BDD100K Night
+    annotation_type: segmentation
+    notes: Illumination analysis.

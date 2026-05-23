@@ -421,7 +421,7 @@ async def get_defects(limit: int = 100, db: AsyncSession = Depends(get_db)):
                ST_X(location::geometry) as longitude, 
                timestamp, video_id, frame_id, metadata
         FROM detections
-        WHERE detection_type NOT IN ('vehicle_detected', 'car', 'truck', 'person', 'pedestrian', 'license_plate', 'vehicle')
+        WHERE detection_type NOT IN ('vehicle_detected', 'car', 'truck', 'person', 'pedestrian', 'license_plate', 'vehicle', 'road_clear')
         ORDER BY timestamp DESC
         LIMIT :limit
     """)
@@ -514,7 +514,7 @@ async def upload_video(file: UploadFile = File(...)):
     """
     Accepts a dashcam video file, streams it to GCS raw bucket, and records
     a durable upload row for status/report tracking.
-    The video validation service triggers via Eventarc on GCS finalization,
+    The video validation service triggers via Cloud Storage Pub/Sub notification,
     which in turn copies the video to validated bucket to trigger the workflow automatically.
     Returns the stored object name as execution_id for status tracking.
     """

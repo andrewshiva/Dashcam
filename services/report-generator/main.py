@@ -391,6 +391,7 @@ async def generate_report(
                    timestamp, frame_id, chainage, frame_gcs_uri, metadata
             FROM detections
             WHERE video_id = :video_id
+              AND detection_type != 'road_clear'
             ORDER BY timestamp ASC
             """
         )
