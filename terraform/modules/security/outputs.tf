@@ -18,3 +18,13 @@ output "db_password" {
   value       = random_password.db_password.result
   sensitive   = true
 }
+
+output "dashboard_admin_password_secret_name" {
+  description = "Secret name for the dashboard administrator password"
+  value       = google_secret_manager_secret.dashboard_admin_password.secret_id
+}
+
+output "dashboard_ro_password_secret_name" {
+  description = "Secret name for the dashboard RO user password"
+  value       = google_secret_manager_secret.dashboard_ro_password.secret_id
+}

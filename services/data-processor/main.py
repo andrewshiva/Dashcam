@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Data Processing & Geocoding Service")
 
 DB_USER = os.environ.get("DB_USER", "postgres")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "postgres")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_NAME = os.environ.get("DB_NAME", "nhaidb")
 

@@ -17,6 +17,42 @@ resource "google_secret_manager_secret_version" "db_password" {
   secret_data = random_password.db_password.result
 }
 
+resource "google_secret_manager_secret" "dashboard_admin_password" {
+  secret_id = "${var.project_prefix}-dashboard-admin-password"
+  replication {
+    auto {}
+  }
+}
+
+resource "random_password" "dashboard_admin_password" {
+  length           = 24
+  special          = true
+  override_special = "_-"
+}
+
+resource "google_secret_manager_secret_version" "dashboard_admin_password" {
+  secret      = google_secret_manager_secret.dashboard_admin_password.id
+  secret_data = random_password.dashboard_admin_password.result
+}
+
+resource "google_secret_manager_secret" "dashboard_ro_password" {
+  secret_id = "${var.project_prefix}-dashboard-ro-password"
+  replication {
+    auto {}
+  }
+}
+
+resource "random_password" "dashboard_ro_password" {
+  length           = 24
+  special          = true
+  override_special = "_-"
+}
+
+resource "google_secret_manager_secret_version" "dashboard_ro_password" {
+  secret      = google_secret_manager_secret.dashboard_ro_password.id
+  secret_data = random_password.dashboard_ro_password.result
+}
+
 data "google_project" "project" {
   project_id = var.project_id
 }

@@ -116,7 +116,7 @@ steps:
       - '--set-env-vars'
       - 'DB_USER=postgres,DB_NAME=nhaidb,DB_HOST=/cloudsql/$PROJECT_ID:asia-south1:nhai-das-postgres,RAW_BUCKET=nhai-das-dev-raw-video,VALIDATED_BUCKET=nhai-das-dev-validated-video,QUARANTINE_BUCKET=nhai-das-dev-quarantine,PROCESSED_BUCKET=nhai-das-dev-processed,GCP_PROJECT=$PROJECT_ID,GCP_REGION=asia-south1,WORKFLOW_NAME=nhai-das-pipeline,MAX_PIPELINE_ACTIVE_SECONDS=3600,MAX_STAGE_IDLE_SECONDS=900'
       - '--set-secrets'
-      - 'DB_PASSWORD=nhai-das-dev-db-password:latest'
+      - 'DB_PASSWORD=nhai-das-dev-db-password:latest,DASHBOARD_ADMIN_PASSWORD=nhai-das-dev-dashboard-admin-password:latest,DASHBOARD_RO_PASSWORD=nhai-das-dev-dashboard-ro-password:latest'
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'deploy-dashboard-frontend'

@@ -18,6 +18,16 @@ output "dashboard_uptime_check_id" {
   value       = module.observability.dashboard_uptime_check_id
 }
 
+output "dashboard_admin_password_secret_name" {
+  description = "Secret Manager secret name for the dashboard administrator password."
+  value       = module.security.dashboard_admin_password_secret_name
+}
+
+output "dashboard_ro_password_secret_name" {
+  description = "Secret Manager secret name for the dashboard RO user password."
+  value       = module.security.dashboard_ro_password_secret_name
+}
+
 output "cloud_build_app_deploy_trigger_name" {
   description = "Cloud Build app deploy trigger name, when enabled."
   value       = module.cicd.app_deploy_trigger_name

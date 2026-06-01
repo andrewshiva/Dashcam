@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import DetectionImage from './components/DetectionImage';
-import { authenticateUser, createUserSession, findAuthUser, normalizeUsername } from './auth';
+import { createUserSession, normalizeUsername } from './auth';
 import { CheckCircle2, Bell, FileText, Upload, Loader2, CheckCircle, XCircle, Film, ShieldCheck, UserRound, KeyRound, LogOut, Eye, Download } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://dashboard-api-863438916962.asia-south1.run.app';
+const API_ROOT = API_BASE.replace(/\/+$/, '');
 const REPORT_BASE = import.meta.env.VITE_REPORT_BASE || 'https://report-generator-863438916962.asia-south1.run.app';
 const FALLBACK_ROAD_IMAGE = 'https://images.unsplash.com/photo-1515162305285-0293e4767cc2?w=800';
 const DETECTION_ACCENT_COLOR = '#00E5FF';
@@ -42,14 +43,7 @@ const readStoredUser = () => {
 
   try {
     const storedUser = JSON.parse(window.localStorage.getItem(SESSION_STORAGE_KEY) || 'null');
-    if (!storedUser?.username) return null;
-
-    const knownUser = findAuthUser(storedUser.username);
-    if (!knownUser || knownUser.role !== storedUser.role) return null;
-
-    return {
-      ...createUserSession(knownUser),
-    };
+    return createUserSession(storedUser);
   } catch {
     return null;
   }
@@ -229,7 +223,7 @@ const buildReportFileName = (extension) => {
     .toLowerCase() + `.${extension}`;
 };
 
-const LoginPage = ({ loginError, onLogin }) => {
+const LoginPage = ({ isSubmitting, loginError, onLogin }) => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
 
   const handleSubmit = (event) => {
@@ -241,7 +235,7 @@ const LoginPage = ({ loginError, onLogin }) => {
     setCredentials(prev => ({ ...prev, [field]: value }));
   };
 
-  const isSubmitDisabled = !credentials.username.trim() || !credentials.password;
+  const isSubmitDisabled = isSubmitting || !credentials.username.trim() || !credentials.password;
 
   return (
     <main className="login-screen">
@@ -293,7 +287,14 @@ const LoginPage = ({ loginError, onLogin }) => {
           )}
 
           <button className="login-submit" type="submit" disabled={isSubmitDisabled}>
-            Sign in
+            {isSubmitting ? (
+              <>
+                <Loader2 size={18} className="spin" />
+                Signing in
+              </>
+            ) : (
+              'Sign in'
+            )}
           </button>
         </form>
       </section>
@@ -303,6 +304,7 @@ const LoginPage = ({ loginError, onLogin }) => {
 
 const App = () => {
   const [currentUser, setCurrentUser] = useState(readStoredUser);
+  const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [defects, setDefects] = useState([]);
   const [defectsError, setDefectsError] = useState('');
@@ -334,18 +336,42 @@ const App = () => {
     ? `RO daily upload limit reached (${DAILY_RO_UPLOAD_LIMIT} videos).`
     : '';
 
-  const handleLogin = ({ username, password }) => {
-    const userSession = authenticateUser({ username, password });
-
-    if (!userSession) {
-      setLoginError('Invalid username or password.');
-      return;
-    }
-
-    saveStoredUser(userSession);
-    setCurrentUser(userSession);
-    setDailyUploadCount(userSession.role === 'ro' ? readDailyUploadCount(userSession.username) : 0);
+  const handleLogin = async ({ username, password }) => {
+    setIsLoginSubmitting(true);
     setLoginError('');
+
+    try {
+      const response = await fetch(`${API_ROOT}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (!response.ok) {
+        let detail = response.status === 401 ? 'Invalid username or password.' : 'Sign-in service is unavailable.';
+        try {
+          const payload = await response.json();
+          detail = payload.detail || detail;
+        } catch {
+          // Keep the status-based login message when the backend returns non-JSON.
+        }
+        throw new Error(detail);
+      }
+
+      const userSession = createUserSession(await response.json());
+      if (!userSession) {
+        throw new Error('Sign-in service returned an invalid session.');
+      }
+
+      saveStoredUser(userSession);
+      setCurrentUser(userSession);
+      setDailyUploadCount(userSession.role === 'ro' ? readDailyUploadCount(userSession.username) : 0);
+      setLoginError('');
+    } catch (error) {
+      setLoginError(error.message || 'Sign-in service is unavailable.');
+    } finally {
+      setIsLoginSubmitting(false);
+    }
   };
 
   useEffect(() => {
@@ -362,7 +388,7 @@ const App = () => {
   useEffect(() => {
     const fetchDefects = async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/v1/defects`);
+        const response = await fetch(`${API_ROOT}/api/v1/defects`);
         if (!response.ok) {
           let detail = 'Defect API is unavailable.';
           try {
@@ -394,7 +420,7 @@ const App = () => {
 
     const pollStatus = async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/v1/pipeline-status/${executionId}`);
+        const response = await fetch(`${API_ROOT}/api/v1/pipeline-status/${executionId}`);
         if (!response.ok) {
           let detail = 'Pipeline status check failed.';
           try {
@@ -469,7 +495,7 @@ const App = () => {
 
     try {
       // Step 1: Generate GCS Signed URL via Backend
-      const urlResponse = await fetch(`${API_BASE}/api/v1/generate-upload-url`, {
+      const urlResponse = await fetch(`${API_ROOT}/api/v1/generate-upload-url`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -519,7 +545,7 @@ const App = () => {
       setUploadProgress(95);
 
       // Step 3: Register upload with backend to write DB rows and trigger downstream stages
-      const confirmResponse = await fetch(`${API_BASE}/api/v1/confirm-upload`, {
+      const confirmResponse = await fetch(`${API_ROOT}/api/v1/confirm-upload`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -625,7 +651,7 @@ const App = () => {
 
   const getDetectionImageUrl = (defect) => (
     defect?.id && !defect.is_demo && !String(defect.id).startsWith('demo')
-      ? `${API_BASE}/api/v1/defects/${defect.id}/image`
+      ? `${API_ROOT}/api/v1/defects/${defect.id}/image`
       : FALLBACK_ROAD_IMAGE
   );
 
@@ -1255,7 +1281,7 @@ const App = () => {
   };
 
   if (!currentUser) {
-    return <LoginPage loginError={loginError} onLogin={handleLogin} />;
+    return <LoginPage isSubmitting={isLoginSubmitting} loginError={loginError} onLogin={handleLogin} />;
   }
 
   return (
@@ -1567,7 +1593,7 @@ const App = () => {
             gap: '24px' 
           }}>
             {[].map((defect, i) => {
-              const imageUrl = (defect.id && !defect.is_demo && !String(defect.id).startsWith('demo')) ? `${API_BASE}/api/v1/defects/${defect.id}/image` : FALLBACK_ROAD_IMAGE;
+              const imageUrl = (defect.id && !defect.is_demo && !String(defect.id).startsWith('demo')) ? `${API_ROOT}/api/v1/defects/${defect.id}/image` : FALLBACK_ROAD_IMAGE;
               
               return (
                 <div key={i} className="glass-panel" style={{ 
@@ -1788,7 +1814,7 @@ const App = () => {
               position: 'relative'
             }}>
               <DetectionImage
-                src={(selectedDefect.id && !selectedDefect.is_demo && !String(selectedDefect.id).startsWith('demo')) ? `${API_BASE}/api/v1/defects/${selectedDefect.id}/image` : FALLBACK_ROAD_IMAGE}
+                src={(selectedDefect.id && !selectedDefect.is_demo && !String(selectedDefect.id).startsWith('demo')) ? `${API_ROOT}/api/v1/defects/${selectedDefect.id}/image` : FALLBACK_ROAD_IMAGE}
                 fallbackSrc={FALLBACK_ROAD_IMAGE}
                 alt="Anomaly full view"
                 annotation={selectedDefect.annotation}
@@ -1810,7 +1836,7 @@ const App = () => {
               </button>
               <button 
                 onClick={() => handleDownload(
-                  (selectedDefect.id && !selectedDefect.is_demo && !String(selectedDefect.id).startsWith('demo')) ? `${API_BASE}/api/v1/defects/${selectedDefect.id}/image` : FALLBACK_ROAD_IMAGE,
+                  (selectedDefect.id && !selectedDefect.is_demo && !String(selectedDefect.id).startsWith('demo')) ? `${API_ROOT}/api/v1/defects/${selectedDefect.id}/image` : FALLBACK_ROAD_IMAGE,
                   buildDetectionImageFilename(selectedDefect),
                   selectedDefect
                 )}

@@ -49,19 +49,29 @@ flowchart LR
 ## 🔑 Credentials & Access
 
 ### Operations Map Dashboard Accounts
-To log in to the Vite frontend dashboard:
+Dashboard passwords are configured through Secret Manager and injected into the Dashboard API at deployment time.
 
-| Role | Username | Password | Notes |
+| Role | Username | Password Source | Notes |
 | :--- | :--- | :--- | :--- |
-| **Administrator** | `administrator` | `Admin@123` | Full access, unlimited uploads |
-| **RO User** | `ro` | `Ro@123` | Limited to 3 uploads per day |
+| **Administrator** | `administrator` | `nhai-das-dev-dashboard-admin-password` | Full access, unlimited uploads |
+| **RO User** | `ro` | `nhai-das-dev-dashboard-ro-password` | Limited to 3 uploads per day |
 
-### Local Database Fallbacks
-Default credentials used by the local microservices and initialization scripts:
-- **DB User**: `postgres`
-- **DB Password**: `postgres`
-- **DB Name**: `nhaidb`
-- **DB Host**: `localhost`
+Retrieve passwords only through approved IAM access, for example:
+```bash
+gcloud secrets versions access latest --secret=nhai-das-dev-dashboard-admin-password
+gcloud secrets versions access latest --secret=nhai-das-dev-dashboard-ro-password
+```
+
+### Local Database Configuration
+Set the database password through environment variables before running services or database scripts:
+```bash
+export DB_USER=postgres
+export DB_PASSWORD=<local database password>
+export DB_NAME=nhaidb
+export DB_HOST=localhost
+```
+
+For local dashboard login, set `DASHBOARD_ADMIN_PASSWORD` and `DASHBOARD_RO_PASSWORD` in your shell or an ignored `.env` file.
 
 ---
 

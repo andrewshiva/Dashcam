@@ -35,6 +35,13 @@ var/
 venv/
 ENV/
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*service-account*.json
+credentials*.json
+secrets*.json
 
 # Terraform IaC
 .terraform/

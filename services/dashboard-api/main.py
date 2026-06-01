@@ -1,6 +1,7 @@
 import os
 import logging
 import re
+import secrets
 import uuid
 from datetime import datetime, timezone
 from urllib.parse import quote_plus
@@ -32,7 +33,7 @@ app.add_middleware(
 
 # Database configuration
 DB_USER = os.environ.get("DB_USER", "postgres")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "postgres")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_NAME = os.environ.get("DB_NAME", "nhaidb")
 
@@ -62,6 +63,51 @@ MAX_PIPELINE_ACTIVE_SECONDS = int(os.environ.get("MAX_PIPELINE_ACTIVE_SECONDS", 
 MAX_STAGE_IDLE_SECONDS = int(os.environ.get("MAX_STAGE_IDLE_SECONDS", "900"))
 
 storage_client = storage.Client()
+
+DASHBOARD_USERS = [
+    {
+        "username": os.environ.get("DASHBOARD_ADMIN_USERNAME", "administrator"),
+        "password": os.environ.get("DASHBOARD_ADMIN_PASSWORD", ""),
+        "role": "administrator",
+        "display_name": os.environ.get("DASHBOARD_ADMIN_DISPLAY_NAME", "Administrator"),
+        "aliases": ("administrator", "admin"),
+    },
+    {
+        "username": os.environ.get("DASHBOARD_RO_USERNAME", "ro"),
+        "password": os.environ.get("DASHBOARD_RO_PASSWORD", ""),
+        "role": "ro",
+        "display_name": os.environ.get("DASHBOARD_RO_DISPLAY_NAME", "RO User"),
+        "aliases": ("ro", "ro user", "regional officer"),
+    },
+]
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+def normalize_auth_value(value: str) -> str:
+    return str(value or "").strip().lower()
+
+def normalize_password(value: str) -> str:
+    return str(value or "").strip()
+
+def find_dashboard_user(username: str) -> Optional[Dict[str, Any]]:
+    requested_username = normalize_auth_value(username)
+    for user in DASHBOARD_USERS:
+        aliases = {normalize_auth_value(user["username"])}
+        aliases.update(normalize_auth_value(alias) for alias in user.get("aliases", ()))
+        if requested_username in aliases:
+            return user
+    return None
+
+def authenticate_dashboard_user(username: str, password: str) -> Optional[Dict[str, Any]]:
+    user = find_dashboard_user(username)
+    configured_password = normalize_password(user.get("password") if user else "")
+    if not user or not configured_password:
+        return None
+    if not secrets.compare_digest(configured_password, normalize_password(password)):
+        return None
+    return user
 
 ALLOWED_VIDEO_EXTENSIONS = ('.mp4', '.mov', '.avi', '.mkv')
 VIDEO_UPLOADS_TABLE_SQL = """
@@ -110,6 +156,22 @@ PIPELINE_EVENTS_INDEX_SQL = """
 async def get_db():
     async with async_session() as session:
         yield session
+
+@app.post("/api/v1/auth/login")
+async def login(request: LoginRequest):
+    if not any(normalize_password(user.get("password")) for user in DASHBOARD_USERS):
+        logger.error("Dashboard authentication requested before dashboard passwords were configured.")
+        raise HTTPException(status_code=503, detail="Dashboard authentication is not configured.")
+
+    user = authenticate_dashboard_user(request.username, request.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid username or password.")
+
+    return {
+        "username": user["username"],
+        "role": user["role"],
+        "displayName": user["display_name"],
+    }
 
 @app.on_event("startup")
 async def ensure_operational_tables():

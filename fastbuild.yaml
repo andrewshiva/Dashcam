@@ -71,7 +71,9 @@ steps:
       - '--vpc-egress'
       - 'private-ranges-only'
       - '--set-env-vars'
-      - 'DB_USER=postgres,DB_PASSWORD=nhai_das_password_2026,DB_NAME=nhaidb,DB_HOST=172.20.0.3,PROCESSED_BUCKET=nhai-das-dev-processed'
+      - 'DB_USER=postgres,DB_NAME=nhaidb,DB_HOST=172.20.0.3,PROCESSED_BUCKET=nhai-das-dev-processed'
+      - '--set-secrets'
+      - 'DB_PASSWORD=nhai-das-dev-db-password:latest'
 
 images:
   - 'gcr.io/$PROJECT_ID/ai-inference'
