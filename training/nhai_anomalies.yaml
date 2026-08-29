@@ -1,0 +1,46 @@
+path: datasets/nhai_road_anomalies
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: pothole
+  1: alligator_cracking
+  2: rutting
+  3: rain_cut
+  4: edge_drop
+  5: uneven_shoulder
+  6: shoulder_vegetation
+  7: broken_kerb
+  8: faded_kerb_paint
+  9: median_obstruction
+  10: missing_plantation
+  11: dead_plantation
+  12: overgrown_plantation
+  13: missing_drain_cover
+  14: water_stagnation
+  15: drain_blockage
+  16: broken_paver_blocks
+  17: missing_tiles
+  18: uneven_footpath
+  19: damaged_cc_barrier
+  20: bent_guard_rail
+  21: faded_mbcb_paint
+  22: damaged_signboard
+  23: missing_retroreflective_sheeting
+  24: illegible_overhead_sign
+  25: poor_night_visibility
+  26: damaged_blinker
+  27: broken_delineator
+  28: damaged_attenuator
+  29: anti_glare_screen_damage
+  30: faded_lane_marking
+  31: missing_lane_marking
+  32: damaged_road_stud
+  33: worn_rumble_strip
+  34: damaged_bus_shelter
+  35: faded_bus_bay_marking
+  36: damaged_lay_by_sign
+  37: broken_streetlight
+  38: non_functional_lighting
+  39: dark_highway_segment

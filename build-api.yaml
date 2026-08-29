@@ -1,0 +1,36 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-dashboard-api'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/dashboard-api', './services/dashboard-api']
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-dashboard-api'
+    args: ['push', 'gcr.io/$PROJECT_ID/dashboard-api']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-dashboard-api'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'dashboard-api'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/dashboard-api'
+      - '--region'
+      - 'asia-south1'
+      - '--platform'
+      - 'managed'
+      - '--no-allow-unauthenticated'
+      - '--vpc-connector'
+      - 'nhai-das-connector'
+      - '--vpc-egress'
+      - 'private-ranges-only'
+      - '--set-env-vars'
+      - 'DB_USER=postgres,DB_NAME=nhaidb,DB_HOST=172.20.0.3,RAW_BUCKET=nhai-das-dev-validated-video,VALIDATED_BUCKET=nhai-das-dev-validated-video,QUARANTINE_BUCKET=nhai-das-dev-quarantine,PROCESSED_BUCKET=nhai-das-dev-processed,GCP_PROJECT=$PROJECT_ID,GCP_REGION=asia-south1,WORKFLOW_NAME=nhai-das-pipeline,MAX_PIPELINE_ACTIVE_SECONDS=3600,MAX_STAGE_IDLE_SECONDS=900'
+      - '--set-secrets'
+      - 'DB_PASSWORD=nhai-das-dev-db-password:latest,DASHBOARD_ADMIN_PASSWORD=nhai-das-dev-dashboard-admin-password:latest,DASHBOARD_RO_PASSWORD=nhai-das-dev-dashboard-ro-password:latest'
+
+images:
+  - 'gcr.io/$PROJECT_ID/dashboard-api'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

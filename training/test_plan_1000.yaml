@@ -1,0 +1,24 @@
+total_images: 1000
+classes: 40
+target_images_per_class: 25
+strategy:
+  - Build a candidate pool from labeled YOLO images only.
+  - Prefer held-out test images; fall back to labeled/val folders only when explicitly requested.
+  - Select images round-robin by underrepresented class until each class reaches 25 images or the pool is exhausted.
+  - Allow multi-label images to count toward every class present in the label file.
+  - Preserve labels exactly; do not synthesize missing anomaly annotations.
+  - Use this as an evaluation subset, not as additional training data.
+
+minimum_gate:
+  per_class_images: 10
+  total_images: 400
+  note: If a class cannot supply at least 10 labeled test images, report it as not test-ready.
+
+recommended_gate:
+  per_class_images: 25
+  total_images: 1000
+  note: This is the requested balanced 1000-image acceptance test.
+
+commands:
+  build_subset: python scripts/build_yolo_test_subset.py --total 1000
+  evaluate: python scripts/evaluate_nhai_yolo.py --weights training/runs/nhai-yolov8/weights/best.pt --data training/nhai_anomalies_test1000.yaml
